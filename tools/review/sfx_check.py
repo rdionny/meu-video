@@ -11,7 +11,7 @@ mix = np.fromfile(mix_f32, dtype=np.float32).reshape(-1, 2).mean(1)
 mus, _ = sf.read(music_wav)
 mus = mus.mean(1)
 n = min(len(mix), len(mus))
-g = np.dot(mix[sr * 2:sr * 58], mus[sr * 2:sr * 58]) / np.dot(mus[sr * 2:sr * 58], mus[sr * 2:sr * 58])
+g = np.dot(mix[sr * 2:sr * 70], mus[sr * 2:sr * 70]) / np.dot(mus[sr * 2:sr * 70], mus[sr * 2:sr * 70])
 res = mix[:n] - g * mus[:n]
 low = []
 for t, name, vol in cues:

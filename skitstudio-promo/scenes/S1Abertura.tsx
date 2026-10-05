@@ -6,8 +6,22 @@ import type { JSX } from "solid-js";
 import { C, F, I } from "../lib/theme";
 import { E, Kf, Pivot, fade, type Key } from "../lib/motion";
 import { Chip } from "../components/fx/Fx";
+import type { Format } from "../lib/format";
 
-const CHIPS: { icon: string; label: string; x: number; y: number; s: number; blur: number; tone?: "solid" }[] = [
+type ChipSpec = { icon: string; label: string; x: number; y: number; s: number; blur: number; tone?: "solid" };
+
+const CHIPS_V: ChipSpec[] = [
+  { icon: I.button, label: "Button", x: 270, y: 390, s: 1.15, blur: 0, tone: "solid" },
+  { icon: I.textView, label: "TextView", x: 800, y: 480, s: 1.0, blur: 0 },
+  { icon: I.editText, label: "EditText", x: 260, y: 1440, s: 1.0, blur: 0 },
+  { icon: I.image, label: "Imagem", x: 820, y: 1520, s: 1.1, blur: 0 },
+  { icon: I.switchIcon, label: "Switch", x: 640, y: 250, s: 0.7, blur: 3 },
+  { icon: I.code, label: "Código", x: 400, y: 1720, s: 0.75, blur: 2.5 },
+  { icon: I.checkbox, label: "CheckBox", x: 190, y: 1160, s: 0.65, blur: 4 },
+  { icon: I.linearV, label: "LinearLayout", x: 860, y: 1230, s: 0.6, blur: 4 },
+];
+
+const CHIPS: ChipSpec[] = [
   { icon: I.button, label: "Button", x: 380, y: 230, s: 1.25, blur: 0, tone: "solid" },
   { icon: I.textView, label: "TextView", x: 1540, y: 220, s: 1.1, blur: 0 },
   { icon: I.editText, label: "EditText", x: 330, y: 850, s: 1.05, blur: 0 },
@@ -21,10 +35,10 @@ const CHIPS: { icon: string; label: string; x: number; y: number; s: number; blu
 const CONVERGE = 2.45;
 const HIT = 3.0;
 
-function HookLine(props: { text: string; y: number; t: number; gradient?: boolean }): JSX.Element {
+function HookLine(props: { text: string; y: number; t: number; gradient?: boolean; w: number; size: number }): JSX.Element {
   return (
     <group name={`Hook ${props.text}`}>
-      <text x={0} y={props.y} width={1920} height={150} textAlign="center" fontFamily={F.display} fontWeight={800} fontSize={118} letterSpacing={-3} color={C.text}>
+      <text x={0} y={props.y} width={props.w} height={150} textAlign="center" fontFamily={F.display} fontWeight={800} fontSize={props.size} letterSpacing={-3} color={C.text}>
         {props.text}
         {props.gradient && (
           <linearGradientPaint rotation={0}>
@@ -36,23 +50,26 @@ function HookLine(props: { text: string; y: number; t: number; gradient?: boolea
         <Kf p="blur" k={[[0, 10, E.hold], [props.t, 10, E.out], [props.t + 0.5, 0], [CONVERGE, 0, E.in], [CONVERGE + 0.4, 18]]} />
         <Kf p="opacity" k={[[0, 0, E.hold], [props.t, 0, E.out], [props.t + 0.25, 1], [CONVERGE + 0.1, 1, E.in], [CONVERGE + 0.4, 0]]} />
       </text>
-      <rect clipPath x={0} y={props.y - 30} width={1920} height={170} end={3} />
+      <rect clipPath x={0} y={props.y - 30} width={props.w} height={170} end={3} />
     </group>
   );
 }
 
-export function S1Abertura(): JSX.Element {
+export function S1Abertura(props: { f: Format }): JSX.Element {
+  const f = props.f;
   const iconSize = 300;
-  const cx = 960;
-  const cy = 420;
+  const cx = f.w / 2;
+  const cy = f.v ? 820 : 420;
+  const chips = f.v ? CHIPS_V : CHIPS;
+  const halo = Math.min(cy * 2, f.w);
   return (
     <group name="S1 Abertura" start={0} end={6}>
       {/* floating UI pieces with depth, converging into the logo */}
       <group name="Chips">
-        {CHIPS.map((c, i) => {
+        {chips.map((c, i) => {
           const t = 0.15 + i * 0.09;
-          const driftX = (c.x - 960) * 0.06;
-          const driftY = (c.y - 540) * 0.06;
+          const driftX = (c.x - f.w / 2) * 0.06;
+          const driftY = (c.y - f.h / 2) * 0.06;
           return (
             <Chip icon={c.icon} label={c.label} x={c.x} y={c.y} tone={c.tone}>
               {c.blur > 0 && <effect type="blur" value={c.blur} />}
@@ -66,8 +83,8 @@ export function S1Abertura(): JSX.Element {
       </group>
 
       {/* the hook */}
-      <HookLine text="Crie apps Android" y={372} t={0.3} />
-      <HookLine text="direto do celular." y={510} t={0.72} gradient />
+      <HookLine text="Crie apps Android" y={f.v ? 760 : 372} t={0.3} w={f.w} size={f.v ? 94 : 118} />
+      <HookLine text="direto do celular." y={f.v ? 880 : 510} t={0.72} gradient w={f.w} size={f.v ? 94 : 118} />
 
       {/* logo lockup */}
       <Pivot name="Ring" x={cx - 170} y={cy - 170} w={340} h={340} end={6}>
@@ -78,8 +95,8 @@ export function S1Abertura(): JSX.Element {
           <Kf p="opacity" k={[[0, 0, E.hold], [HIT, 0.9, E.out], [HIT + 0.9, 0]]} />
         </Pivot>
 
-      <Pivot name="Logo dive" w={1920} h={cy * 2} end={6}>
-        <rect name="Halo" x={cx - cy} y={0} width={cy * 2} height={cy * 2} end={6}>
+      <Pivot name="Logo dive" w={f.w} h={cy * 2} end={6}>
+        <rect name="Halo" x={cx - halo / 2} y={cy - halo / 2} width={halo} height={halo} end={6}>
           <radialGradientPaint>
             <colorStop offset={0} color={C.purple} opacity={0.6} />
             <colorStop offset={0.4} color={C.purpleDeep} opacity={0.22} />
@@ -130,18 +147,18 @@ export function S1Abertura(): JSX.Element {
         </Pivot>
 
         <group name="Wordmark">
-          <text x={0} y={cy + 196} width={1920} height={140} textAlign="center" fontFamily={F.ui} fontWeight={700} fontSize={112} letterSpacing={-1} color={C.text} end={6}>
+          <text x={0} y={cy + 196} width={f.w} height={140} textAlign="center" fontFamily={F.ui} fontWeight={700} fontSize={112} letterSpacing={-1} color={C.text} end={6}>
             SkitStudio
             <textRange start={4} color={C.purple} />
             <Kf p="offsetY" k={[[0, 30, E.hold], [3.5, 30, E.out], [4.1, 0]]} />
           </text>
           <rect clipPath y={cy + 170} height={180} end={6}>
-            <Kf p="x" k={[[0, 960, E.hold], [3.5, 960, E.out], [4.1, 0]]} />
-            <Kf p="width" k={[[0, 0, E.hold], [3.5, 0, E.out], [4.1, 1920]]} />
+            <Kf p="x" k={[[0, f.w / 2, E.hold], [3.5, f.w / 2, E.out], [4.1, 0]]} />
+            <Kf p="width" k={[[0, 0, E.hold], [3.5, 0, E.out], [4.1, f.w]]} />
           </rect>
           <Kf p="opacity" k={[[0, 0, E.hold], [3.5, 0, E.out], [3.7, 1], [5.3, 1, E.in], [5.5, 0]]} />
         </group>
-        <text name="Slogan" x={0} y={cy + 338} width={1920} height={48} textAlign="center" fontFamily={F.ui} fontSize={36} color="#b3aed6" end={6}>
+        <text name="Slogan" x={0} y={cy + 338} width={f.w} height={48} textAlign="center" fontFamily={F.ui} fontSize={36} color="#b3aed6" end={6}>
           Crie apps Android no seu dispositivo
           <Kf p="opacity" k={fade(3.95, 0.4, 5.25, 0.2)} />
           <Kf p="offsetY" k={[[0, 18, E.hold], [3.95, 18, E.out], [4.5, 0]]} />
@@ -150,7 +167,7 @@ export function S1Abertura(): JSX.Element {
       </Pivot>
 
       {/* white flash on the hit */}
-      <rect name="Hit flash" x={0} y={0} width={1920} height={1080} end={6}>
+      <rect name="Hit flash" x={0} y={0} width={f.w} height={f.h} end={6}>
         <radialGradientPaint>
           <colorStop offset={0} color="#ffffff" opacity={0.5} />
           <colorStop offset={0.5} color={C.lavender} opacity={0.12} />

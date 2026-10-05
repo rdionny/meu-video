@@ -5,6 +5,7 @@ import { createEffect } from "solid-js";
 import { useResolution, useTicker, type SceneNode } from "@diffusionstudio/jsx";
 import { C, F } from "../../lib/theme";
 import { E, Kf, Pivot, fade, type Key } from "../../lib/motion";
+import type { Format } from "../../lib/format";
 
 /** A tap: the finger arrives, presses (ripple), and lifts. Coordinates in the parent's units. */
 export function Tap(props: { x: number; y: number; t: number; size?: number; end?: number; from?: [number, number] }): JSX.Element {
@@ -77,11 +78,13 @@ export function Drag(props: { a: [number, number]; b: [number, number]; t0: numb
  * Left-column headline: kicker + big lines (+ optional sub), in at `t`,
  * out at `t2`. Pixel coordinates (frame space).
  */
-export function Headline(props: { x?: number; y: number; kicker: string; lines: string[]; sub?: string; t: number; t2: number; size?: number; accent?: number[] }): JSX.Element {
+export function Headline(props: { f?: Format; x?: number; y: number; kicker: string; lines: string[]; sub?: string; t: number; t2: number; size?: number; accent?: number[] }): JSX.Element {
   // lives in a group of its own, from just before `t` to just after `t2`;
   // keys below are relative to that group
   const t0 = Math.max(0, props.t - 0.2);
-  const local = { ...props, t: props.t - t0, t2: props.t2 - t0, end: props.t2 - t0 + 0.8 };
+  // vertical: one column across the top of the frame
+  const place = props.f?.v ? { x: 80, y: 130, size: 84, subWidth: 920 } : { x: props.x, y: props.y, size: props.size, subWidth: 620 };
+  const local = { ...props, ...place, t: props.t - t0, t2: props.t2 - t0, end: props.t2 - t0 + 0.8 };
   return (
     <group name={`Headline ${props.lines.join(" ")}`} start={t0} end={props.t2 + 0.6}>
       <HeadlineBody {...local} />
@@ -89,7 +92,7 @@ export function Headline(props: { x?: number; y: number; kicker: string; lines: 
   );
 }
 
-function HeadlineBody(props: { x?: number; y: number; kicker: string; lines: string[]; sub?: string; t: number; t2: number; size?: number; end?: number; accent?: number[] }): JSX.Element {
+function HeadlineBody(props: { x?: number; y: number; kicker: string; lines: string[]; sub?: string; t: number; t2: number; size?: number; subWidth?: number; end?: number; accent?: number[] }): JSX.Element {
   const x = props.x ?? 140;
   const size = props.size ?? 78;
   const lh = size * 1.08;
@@ -121,7 +124,7 @@ function HeadlineBody(props: { x?: number; y: number; kicker: string; lines: str
         );
       })}
       {props.sub && (
-        <text x={x} y={subY} width={620} height={90} fontFamily={F.ui} fontSize={30} color={C.text2} end={props.end}>
+        <text x={x} y={subY} width={props.subWidth ?? 620} height={90} fontFamily={F.ui} fontSize={30} color={C.text2} end={props.end}>
           {props.sub}
           <Kf p="opacity" k={fade(props.t + 0.3, 0.35, out, 0.22)} />
           <Kf p="offsetY" k={[[0, 16, E.hold], [props.t + 0.3, 16, E.out], [props.t + 0.8, 0]]} />
@@ -132,14 +135,16 @@ function HeadlineBody(props: { x?: number; y: number; kicker: string; lines: str
 }
 
 /** Falling code glyphs, as on SkitStudio's splash screen. */
-export function CodeRain(props: { end: number; opacity: Key[]; color?: string }): JSX.Element {
+export function CodeRain(props: { end: number; opacity: Key[]; color?: string; w?: number; h?: number }): JSX.Element {
+  const W = props.w ?? 1920;
+  const H = props.h ?? 1080;
   const { time } = useTicker();
   const resolution = useResolution();
   const glyphs = "01{}<>/#;()=+[]".split("");
   // deterministic columns
   let seed = 7;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  const cols = Array.from({ length: 46 }, (_, i) => ({
+  const cols = Array.from({ length: Math.round(W / 41.7) }, (_, i) => ({
     x: 20 + i * 41.5 + rnd() * 14,
     speed: 40 + rnd() * 90,
     offset: rnd() * 1400,
@@ -152,21 +157,21 @@ export function CodeRain(props: { end: number; opacity: Key[]; color?: string })
       const el = node.element;
       if (!el) return;
       const k = Math.max(1, resolution());
-      if (el.width !== 1920 * k) {
-        el.width = 1920 * k;
-        el.height = 1080 * k;
+      if (el.width !== W * k || el.height !== H * k) {
+        el.width = W * k;
+        el.height = H * k;
       }
       const ctx = el.getContext("2d")!;
       ctx.setTransform(k, 0, 0, k, 0, 0);
-      ctx.clearRect(0, 0, 1920, 1080);
+      ctx.clearRect(0, 0, W, H);
       const t = time();
       ctx.font = `500 16px "JetBrains Mono"`;
       ctx.textAlign = "center";
       for (const c of cols) {
-        const head = ((c.offset + t * c.speed) % 1400) - 160;
+        const head = ((c.offset + t * c.speed) % (H + 320)) - 160;
         for (let j = 0; j < c.len; j++) {
           const y = head - j * c.size * 1.4;
-          if (y < -30 || y > 1110) continue;
+          if (y < -30 || y > H + 30) continue;
           const a = (1 - j / c.len) * 0.55;
           ctx.globalAlpha = a;
           ctx.fillStyle = j === 0 ? "#b9b0ff" : props.color ?? "#5e4fd6";
@@ -179,7 +184,7 @@ export function CodeRain(props: { end: number; opacity: Key[]; color?: string })
   };
   return (
     <group name="Code rain">
-      <surface x={0} y={0} width={1920} height={1080} ref={draw} end={props.end} />
+      <surface x={0} y={0} width={W} height={H} ref={draw} end={props.end} />
       <Kf p="opacity" k={props.opacity} />
     </group>
   );

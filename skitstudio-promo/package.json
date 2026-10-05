@@ -2,19 +2,48 @@
   "name": "skitstudio-promo",
   "displayName": "SkitStudio — Vídeo promocional",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "index.tsx",
   "projectId": "skitstudio-promo-2026",
   "scripts": {
-    "render": "node ../tools/ds-render/render.mjs --project . --scene promo --out ../render/skitstudio-promo-master.webm --mp4 ../render/skitstudio-promo-1080p.mp4",
-    "preview": "node ../tools/ds-render/render.mjs --project . --scene promo --out ../render/preview-540p.webm --res 540"
+    "render": "../tools/ds-render/render-final.sh promo render/skitstudio-promo-1080p.mp4",
+    "render:vertical": "../tools/ds-render/render-final.sh promo-vertical render/skitstudio-promo-vertical-1080x1920.mp4",
+    "preview": "node ../tools/ds-render/render.mjs --project . --scene promo --out ../render/previews/preview-540p.webm --res 540",
+    "preview:vertical": "node ../tools/ds-render/render.mjs --project . --scene promo-vertical --out ../render/previews/preview-vertical-540p.webm --res 540"
   },
   "diffusion": {
     "export": {
       "promo": {
         "format": "mp4",
-        "video": { "enabled": true, "codec": "avc", "bitrate": 16000000, "fps": 30, "resolution": 1080 },
-        "audio": { "enabled": true, "codec": "aac", "sampleRate": 48000, "bitrate": 256000 }
+        "video": {
+          "enabled": true,
+          "codec": "avc",
+          "bitrate": 16000000,
+          "fps": 30,
+          "resolution": 1080
+        },
+        "audio": {
+          "enabled": true,
+          "codec": "aac",
+          "sampleRate": 48000,
+          "bitrate": 256000
+        }
+      },
+      "promo-vertical": {
+        "format": "mp4",
+        "video": {
+          "enabled": true,
+          "codec": "avc",
+          "bitrate": 16000000,
+          "fps": 30,
+          "resolution": 1080
+        },
+        "audio": {
+          "enabled": true,
+          "codec": "aac",
+          "sampleRate": 48000,
+          "bitrate": 256000
+        }
       }
     }
   },

@@ -11,7 +11,7 @@ import { Chip, Glow } from "../components/fx/Fx";
 export function Thumbnail(): JSX.Element {
   const end = 2;
   return (
-    <scene id="thumbnail" name="Thumbnail (YouTube)" x={2200} width={1920} height={1080} fill={C.ink}>
+    <scene id="thumbnail" name="Thumbnail (YouTube)" x={3400} width={1920} height={1080} fill={C.ink}>
       <image src="images/bg/plate.png" x={0} y={0} width={1920} height={1080} end={end} />
       <Glow x={420} y={260} r={820} color={C.purpleDeep} end={end} opacity={1} />
       <Glow x={1500} y={760} r={760} color={C.purple} end={end} opacity={0.55} />

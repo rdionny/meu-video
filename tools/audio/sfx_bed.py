@@ -15,7 +15,7 @@ import numpy as np
 import soundfile as sf
 
 SR = 48000
-LENGTH = 60.0
+LENGTH = 72.0
 
 cues_path, sfx_dir, out = sys.argv[1:4]
 cues = json.load(open(cues_path))

@@ -15,6 +15,8 @@ export const SLOT = {
   field: { x: 28, y: 250, w: 304, h: 54 },
   btnWrap: { x: 112, y: 326, w: 136, h: 52 },
   btnFull: { x: 28, y: 326, w: 304, h: 52 },
+  /** "Limpar" (borderless), added by Skit AI */
+  limpar: { x: 28, y: 390, w: 304, h: 46 },
 };
 
 const NEVER = 1e4;
@@ -39,6 +41,10 @@ export type AppTimes = {
   btnPressAt?: number;
   /** title changes to "Olá, Ana!" */
   titleChangeAt?: number;
+  /** the "Limpar" button Skit AI added (and its click: field and title reset) */
+  limpar?: boolean;
+  limparPressAt?: number;
+  clearAt?: number;
 };
 
 function pop(t: number | undefined): { scale: Key[]; opacity: Key[] } | null {
@@ -76,6 +82,8 @@ export function AppLayout(props: { t: AppTimes; end?: number; showSelections?: b
   const changeAt = t.titleChangeAt ?? NEVER;
   const typed = t.typeName;
   const pressAt = t.btnPressAt ?? NEVER;
+  const clearAt = t.clearAt ?? NEVER;
+  const cleared = t.clearAt !== undefined;
 
   return (
     <group name="Olá App layout">
@@ -95,16 +103,16 @@ export function AppLayout(props: { t: AppTimes; end?: number; showSelections?: b
       <Pivot name="TextView" x={SLOT.title.x} y={SLOT.title.y} w={SLOT.title.w} h={SLOT.title.h} end={props.end}>
         <text x={0} y={0} width={360} height={44} textAlign="center" textBaseline="middle" fontFamily={F.ui} fontWeight={700} fontSize={34} color={C.appText} end={props.end}>
           Olá!
-          <Kf p="opacity" k={[[0, 1, E.hold], [changeAt - 0.08, 1, E.in], [changeAt + 0.02, 0]]} />
+          <Kf p="opacity" k={[[0, 1, E.hold], [changeAt - 0.08, 1, E.in], [changeAt + 0.02, 0], ...(cleared ? ([[clearAt, 0, E.out], [clearAt + 0.12, 1]] as Key[]) : [])]} />
         </text>
         <text x={0} y={0} width={360} height={44} textAlign="center" textBaseline="middle" fontFamily={F.ui} fontWeight={700} fontSize={34} color={C.appText} end={props.end}>
           Olá, Ana!
           <textRange start={5} end={8} color={C.purple} />
-          <Kf p="opacity" k={[[0, 0, E.hold], [changeAt, 0, E.out], [changeAt + 0.08, 1]]} />
+          <Kf p="opacity" k={[[0, 0, E.hold], [changeAt, 0, E.out], [changeAt + 0.08, 1], ...(cleared ? ([[clearAt - 0.06, 1, E.in], [clearAt + 0.04, 0]] as Key[]) : [])]} />
         </text>
         {title && <Kf p="scale" k={title.scale} />}
         {title && <Kf p="opacity" k={title.opacity} />}
-        {!title && t.titleChangeAt !== undefined && <Kf p="scale" k={[[0, 1, E.hold], [changeAt, 1.22, E.back], [changeAt + 0.5, 1]]} />}
+        {!title && t.titleChangeAt !== undefined && <Kf p="scale" k={[[0, 1, E.hold], [changeAt, 0.8, E.backHard], [changeAt + 0.5, 1]]} />}
       </Pivot>
 
       <Pivot name="EditText" x={SLOT.field.x} y={SLOT.field.y} w={SLOT.field.w} h={SLOT.field.h} end={props.end}>
@@ -119,12 +127,13 @@ export function AppLayout(props: { t: AppTimes; end?: number; showSelections?: b
         )}
         <text x={18} y={0} width={270} height={SLOT.field.h} textBaseline="middle" fontFamily={F.ui} fontSize={16} color={C.appMuted} end={props.end}>
           Digite seu nome
-          {typed && <Kf p="opacity" k={[[0, 1, E.hold], [typed[0], 1, E.hold], [typed[0] + 0.01, 0]]} />}
+          {typed && <Kf p="opacity" k={[[0, 1, E.hold], [typed[0], 1, E.hold], [typed[0] + 0.01, 0], ...(cleared ? ([[clearAt + 0.04, 0, E.out], [clearAt + 0.2, 1]] as Key[]) : [])]} />}
         </text>
         {typed && (
           <>
             <text x={18} y={0} width={270} height={SLOT.field.h} textBaseline="middle" fontFamily={F.ui} fontSize={17} color={C.appText} end={props.end}>
               Ana
+              {cleared && <Kf p="opacity" k={[[0, 1, E.hold], [clearAt, 1, E.in], [clearAt + 0.06, 0]]} />}
               <rect clipPath x={-2} y={0} height={SLOT.field.h}>
                 <Kf p="width" k={[[0, 0, E.hold], [typed[0], 0, "steps(3)"], [typed[0] + typed[1], 36]]} />
               </rect>
@@ -167,6 +176,19 @@ export function AppLayout(props: { t: AppTimes; end?: number; showSelections?: b
         {btn && <Kf p="opacity" k={btn.opacity} />}
         {btn && <Kf p="offsetY" k={[[0, 14, E.hold], [t.btnAt!, 14, E.back], [t.btnAt! + 0.42, 0]]} />}
       </group>
+
+      {t.limpar && (
+        <group name="Button Limpar">
+          {t.limparPressAt !== undefined && (
+            <rect name="Ripple" x={SLOT.limpar.x} y={SLOT.limpar.y} width={SLOT.limpar.w} height={SLOT.limpar.h} cornerRadius={14} fill={C.purple} end={props.end}>
+              <Kf p="opacity" k={[[0, 0, E.hold], [t.limparPressAt, 0, E.out], [t.limparPressAt + 0.08, 0.16], [t.limparPressAt + 0.5, 0]]} />
+            </rect>
+          )}
+          <text x={SLOT.limpar.x} y={SLOT.limpar.y} width={SLOT.limpar.w} height={SLOT.limpar.h} textAlign="center" textBaseline="middle" fontFamily={F.ui} fontWeight={700} fontSize={16} letterSpacing={0.5} color={C.purple} end={props.end}>
+            Limpar
+          </text>
+        </group>
+      )}
 
       {props.showSelections !== false && (
         <>

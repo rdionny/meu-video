@@ -68,6 +68,8 @@ export function CodeView(props: {
   revealAt: number;
   stagger?: number;
   highlight?: { from: number; to: number; at: number };
+  /** lines another editor (Skit AI) added: green band + "+" in the gutter, in at `at` */
+  added?: { lines: number[]; at: number; stagger?: number };
   opacity?: Key[];
 }): JSX.Element {
   const color = props.lang === "xml" ? xml : java;
@@ -91,6 +93,17 @@ export function CodeView(props: {
           <Kf p="opacity" k={fade(props.highlight.at, 0.3)} />
         </group>
       )}
+      {props.added?.lines.map((i, k) => {
+        const y = CODE.y + 8 + i * CODE.lineH - 2;
+        const t = props.added!.at + k * (props.added!.stagger ?? 0.06);
+        return (
+          <group name={`Added L${i + 1}`}>
+            <rect x={CODE.x + 2} y={y} width={CODE.w - 4} height={CODE.lineH} fill="#16a34a" opacity={0.2} end={props.end} />
+            <rect x={CODE.x + 2} y={y} width={2.5} height={CODE.lineH} fill={C.green} end={props.end} />
+            <Kf p="opacity" k={fade(t, 0.25)} />
+          </group>
+        );
+      })}
       {props.lines.map((line, i) => {
         const y = CODE.y + 8 + i * CODE.lineH;
         const indent = line.text.length - line.text.trimStart().length;
@@ -168,6 +181,41 @@ export const XML_LINES: CodeLine[] = [
 ].map((text) => ({ text }));
 
 /** MainActivity.java; lines 14–17 are typed when `typeAt` is given. */
+/** MainActivity.java after Skit AI's edit (animation + "Limpar"), and which lines it added. */
+export const AI_JAVA = {
+  lines: [
+    `package com.example.olaapp;`,
+    ``,
+    `public class MainActivity extends AppCompatActivity {`,
+    ``,
+    `    @Override`,
+    `    protected void onCreate(Bundle savedInstanceState) {`,
+    `        super.onCreate(savedInstanceState);`,
+    `        setContentView(R.layout.activity_main);`,
+    ``,
+    `        EditText edtNome = findViewById(R.id.edt_nome);`,
+    `        TextView txtTitulo = findViewById(R.id.txt_titulo);`,
+    `        Button btnEnviar = findViewById(R.id.btn_enviar);`,
+    `        Button btnLimpar = findViewById(R.id.btn_limpar);`,
+    `        Animation pop = AnimationUtils.loadAnimation(`,
+    `                this, R.anim.titulo_pop);`,
+    ``,
+    `        btnEnviar.setOnClickListener(v -> {`,
+    `            String nome = edtNome.getText().toString();`,
+    `            txtTitulo.setText("Olá, " + nome + "!");`,
+    `            txtTitulo.startAnimation(pop);`,
+    `        });`,
+    ``,
+    `        btnLimpar.setOnClickListener(v -> {`,
+    `            edtNome.setText("");`,
+    `            txtTitulo.setText("Olá!");`,
+    `        });`,
+    `    }`,
+    `}`,
+  ].map((text) => ({ text }) as CodeLine),
+  added: [12, 13, 14, 19, 22, 23, 24, 25],
+};
+
 export function javaLines(typeAt?: number): CodeLine[] {
   const base = [
     `package com.example.olaapp;`,

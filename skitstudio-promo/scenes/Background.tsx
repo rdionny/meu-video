@@ -3,19 +3,25 @@
 
 import type { JSX } from "solid-js";
 import { C } from "../lib/theme";
-import { E } from "../lib/motion";
+import { E, Kf } from "../lib/motion";
 import { CodeRain, Glow } from "../components/fx/Fx";
 import { DURATION } from "../lib/timeline";
+import type { Format } from "../lib/format";
 
-export function Background(): JSX.Element {
+export function Background(props: { f: Format }): JSX.Element {
+  const f = props.f;
   const end = DURATION;
+  const sx = f.w / 1920;
+  const sy = f.h / 1080;
   return (
     <group name="Background">
-      <image name="Plate" src="images/bg/plate.png" x={0} y={0} width={1920} height={1080} end={end} />
-      <Glow x={320} y={180} r={760} color={C.purpleDeep} end={end} drift={[260, 120]} opacity={0.9} />
-      <Glow x={1700} y={940} r={680} color="#0e7490" end={end} drift={[-220, -90]} opacity={0.55} />
-      <Glow x={1100} y={1180} r={900} color="#6d28d9" end={end} drift={[-160, -40]} opacity={0.4} />
+      <image name="Plate" src={f.v ? "images/bg/plate-vertical.png" : "images/bg/plate.png"} x={0} y={0} width={f.w} height={f.h} end={end} />
+      <Glow x={320 * sx} y={180 * sy} r={760} color={C.purpleDeep} end={end} drift={[260 * sx, 120 * sy]} opacity={0.9} />
+      <Glow x={1700 * sx} y={940 * sy} r={680} color="#0e7490" end={end} drift={[-220 * sx, -90 * sy]} opacity={0.55} />
+      <Glow x={1100 * sx} y={1180 * sy} r={900} color="#6d28d9" end={end} drift={[-160 * sx, -40 * sy]} opacity={0.4} />
       <CodeRain
+        w={f.w}
+        h={f.h}
         end={end}
         opacity={[
           [0, 0, E.out],
@@ -24,13 +30,28 @@ export function Background(): JSX.Element {
           [3.3, 0.16, E.linear],
           [5.4, 0.16, E.in],
           [6.0, 0, E.hold],
-          [54.0, 0, E.out],
-          [54.4, 0.14, E.linear],
-          [56.0, 0.14, E.out],
-          [56.6, 0.22, E.linear],
-          [60.0, 0.22],
+          [66.0, 0, E.out],
+          [66.4, 0.14, E.linear],
+          [68.0, 0.14, E.out],
+          [68.6, 0.22, E.linear],
+          [72.0, 0.22],
         ]}
       />
     </group>
+  );
+}
+
+/** Vertical only: keeps the headline area readable over the zoomed phone. */
+export function TopScrim(props: { f: Format }): JSX.Element {
+  if (!props.f.v) return null as unknown as JSX.Element;
+  return (
+    <rect name="Top scrim" x={0} y={0} width={1080} height={700} start={6} end={66}>
+      <linearGradientPaint rotation={90}>
+        <colorStop offset={0} color={C.bg} opacity={0.97} />
+        <colorStop offset={0.62} color={C.bg} opacity={0.9} />
+        <colorStop offset={1} color={C.bg} opacity={0} />
+      </linearGradientPaint>
+      <Kf p="opacity" k={[[0, 0, E.out], [0.4, 1, E.hold], [31.8, 1, E.in], [32.0, 0, E.hold], [36.0, 0, E.out], [36.3, 1]]} />
+    </rect>
   );
 }

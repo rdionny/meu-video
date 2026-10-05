@@ -8,7 +8,7 @@
 
 import type { JSX } from "solid-js";
 import { C, I } from "../lib/theme";
-import { E, Kf, Camera, cam, fade, type CamKey, type Key } from "../lib/motion";
+import { E, Kf, Camera, cam as camAt, fade, type CamKey, type Key } from "../lib/motion";
 import { STORY } from "../lib/timeline";
 import { PhoneRig } from "../components/ui/Phone";
 import { ProjectList, CARD } from "../components/ui/ProjectList";
@@ -18,12 +18,15 @@ import { PropertiesSheet, sheetOpen, tileCenter, tabCenter, eventCenter, TextPop
 import { TreeView, treeRowCenter } from "../components/ui/Tree";
 import { CodeView, XML_LINES, javaLines } from "../components/ui/Code";
 import { Tap, Drag, Headline } from "../components/fx/Fx";
+import { center, stagePlan, type Format } from "../lib/format";
 
-/** Where the phone sits (camera at rest) and its dp → px scale. */
-export const PHONE = { cx: 1250, cy: 540, s: 1.2 };
-/** dp on the phone's screen → frame px at camera rest. */
-export function W(dx: number, dy: number): [number, number] {
-  return [PHONE.cx + (dx - 180) * PHONE.s, PHONE.cy + (dy - 390) * PHONE.s];
+/** Where the phone sits (camera at rest) and its dp → px scale, per format. */
+export function phoneOf(f: Format) {
+  const p = stagePlan(f).phone;
+  const phone = { cx: p.cx, cy: p.cy, s: 1.2 };
+  /** dp on the phone's screen → frame px at camera rest. */
+  const W = (dx: number, dy: number): [number, number] => [phone.cx + (dx - 180) * phone.s, phone.cy + (dy - 390) * phone.s];
+  return { phone, W };
 }
 
 const ST = STORY.start; // 6
@@ -227,8 +230,13 @@ function EditorB(): JSX.Element {
 
 // ---------------------------------------------------------------- camera
 
-function storyCamera(): CamKey[] {
+function storyCamera(f: Format): CamKey[] {
   const L = rel(ST);
+  const { phone: PHONE, W } = phoneOf(f);
+  const c = center(f);
+  // horizontal framings bring details to the right half; vertical to the lower area
+  const cam = (P: [number, number], Z: number, Q: [number, number]) =>
+    camAt(P, Z, f.v && !(Q[0] === PHONE.cx && Q[1] === PHONE.cy) ? (Q[0] === 960 ? c : [540, 1250]) : Q, c);
   const rest = cam(W(180, 390), 1.0, [PHONE.cx, PHONE.cy]);
   return [
     [L(6.0), cam(W(110, 62), 5.0, [960, 540]), E.out],
@@ -252,13 +260,15 @@ function storyCamera(): CamKey[] {
     [L(35.9), cam(W(185, 395), 2.36, [1320, 540]), E.inOut],
     [L(37.2), rest, E.linear],
     [L(37.5), cam(W(180, 390), 1.02, [PHONE.cx, PHONE.cy]), E.in],
-    [L(38.0), { x: -2300, y: 0, s: 1.02 }],
+    [L(38.0), { x: f.v ? -1500 : -2300, y: 0, s: 1.02 }],
   ];
 }
 
 // ---------------------------------------------------------------- the shot
 
-export function Story(): JSX.Element {
+export function Story(props: { f: Format }): JSX.Element {
+  const f = props.f;
+  const { phone: PHONE } = phoneOf(f);
   return (
     <>
       <group name="Phone story" start={ST} end={STORY.end}>
@@ -269,8 +279,8 @@ export function Story(): JSX.Element {
           <EditorB />
         </PhoneRig>
       </group>
-      <Camera name="Story camera" start={ST} end={STORY.end} k={storyCamera()} />
-      <rect name="Dive flash" x={0} y={0} width={1920} height={1080} fill="#3b23c7" start={ST} end={ST + 0.6}>
+      <Camera name="Story camera" start={ST} end={STORY.end} k={storyCamera(f)} w={f.w} h={f.h} />
+      <rect name="Dive flash" x={0} y={0} width={f.w} height={f.h} fill="#3b23c7" start={ST} end={ST + 0.6}>
         <Kf p="opacity" k={[[0, 0.85, E.out], [0.4, 0]]} />
       </rect>
     </>
@@ -278,16 +288,17 @@ export function Story(): JSX.Element {
 }
 
 /** Left-column titles for scenes 2–5 (outside the camera). */
-export function StoryTitles(): JSX.Element {
+export function StoryTitles(props: { f: Format }): JSX.Element {
+  const f = props.f;
   return (
     <group name="Story titles">
-      <Headline y={330} kicker="NOVO PROJETO" lines={["Comece um", "novo projeto"]} t={6.45} t2={11.55} />
-      <Headline y={300} kicker="DESIGN" lines={["Arraste", "componentes"]} sub="Monte a tela visualmente." t={12.1} t2={18.25} accent={[1]} />
-      <Headline y={300} kicker="PROPRIEDADES" lines={["Ajuste cada", "detalhe"]} sub="Texto, largura, altura e mais." t={18.55} t2={23.5} accent={[1]} />
-      <Headline y={300} kicker="ESTRUTURA" lines={["Tudo", "organizado"]} sub="Cada tela em uma árvore de componentes." t={24.3} t2={26.25} accent={[1]} />
-      <Headline y={300} kicker="CÓDIGO" lines={["Visual ou", "código"]} sub="O XML do layout, sempre à mão." t={26.6} t2={29.7} accent={[1]} />
-      <Headline y={300} kicker="EVENTOS" lines={["Reaja a", "cada toque"]} sub="Escolha o evento do componente." t={30.2} t2={32.35} accent={[1]} />
-      <Headline y={300} kicker="LÓGICA" lines={["Programe", "em Java"]} sub="Direto no celular." t={32.6} t2={37.2} accent={[1]} />
+      <Headline f={f} y={330} kicker="NOVO PROJETO" lines={["Comece um", "novo projeto"]} t={6.45} t2={11.55} />
+      <Headline f={f} y={300} kicker="DESIGN" lines={["Arraste", "componentes"]} sub="Monte a tela visualmente." t={12.1} t2={18.25} accent={[1]} />
+      <Headline f={f} y={300} kicker="PROPRIEDADES" lines={["Ajuste cada", "detalhe"]} sub="Texto, largura, altura e mais." t={18.55} t2={23.5} accent={[1]} />
+      <Headline f={f} y={300} kicker="ESTRUTURA" lines={["Tudo", "organizado"]} sub="Cada tela em uma árvore de componentes." t={24.3} t2={26.25} accent={[1]} />
+      <Headline f={f} y={300} kicker="CÓDIGO" lines={["Visual ou", "código"]} sub="O XML do layout, sempre à mão." t={26.6} t2={29.7} accent={[1]} />
+      <Headline f={f} y={300} kicker="EVENTOS" lines={["Reaja a", "cada toque"]} sub="Escolha o evento do componente." t={30.2} t2={32.35} accent={[1]} />
+      <Headline f={f} y={300} kicker="LÓGICA" lines={["Programe", "em Java"]} sub="Direto no celular." t={32.6} t2={37.2} accent={[1]} />
     </group>
   );
 }

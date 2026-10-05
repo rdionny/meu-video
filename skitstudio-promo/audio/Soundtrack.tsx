@@ -10,6 +10,7 @@
 
 import type { JSX } from "solid-js";
 import { STORY_BEATS as T } from "../scenes/Story";
+import { A } from "../scenes/S6IA";
 
 type Cue = [time: number, sfx: string, volume: number];
 
@@ -59,30 +60,55 @@ export const CUES: Cue[] = [
   [T.typeJava, "typing-long", -13],
   [T.highlight, "select", -14],
   [37.45, "whoosh-long", -8],
-  // 6 — visão geral + build
+  // 6 — visão geral
   [38.0, "whoosh-short", -16],
   [39.0, "whoosh-short", -17],
   [40.0, "whoosh-short", -17],
   [41.75, "whoosh", -11],
-  [42.5, "click", -8],
-  [42.62, "whoosh-short", -18],
-  [45.0, "success", -7],
-  [45.5, "click", -8],
-  [45.55, "whoosh-long", -9],
+  // 6b — Skit AI: chat tab, model, prompt, edits, code
+  [A.tapChat, "click", -8],
+  [A.tapChat + 0.05, "whoosh-short", -19],
+  [A.tapModel, "click", -8],
+  [A.tapModel + 0.05, "sheet", -13],
+  [A.pickModel, "select", -11],
+  [A.pickModel + 0.35, "sheet", -19],
+  [A.tapInput, "click", -9],
+  [A.type, "typing-medium", -14],
+  [A.send, "click", -8],
+  [A.send + 0.02, "whoosh-short", -16],
+  [A.think, "shimmer", -19],
+  [A.applied, "pop", -12],
+  [A.applied + 0.28, "select", -20],
+  [A.applied + 0.56, "select", -20],
+  [A.applied + 0.84, "select", -20],
+  [A.code, "whoosh-short", -19],
+  [A.code + 0.15, "typing-short", -18],
+  [A.toast, "pop", -13],
+  [A.tapCode, "click", -8],
+  [A.tapCode + 0.05, "whoosh-short", -19],
+  [A.tapCode + 0.55, "pick", -19],
+  // build
+  [A.tapPlay, "click", -8],
+  [A.compile, "whoosh", -12],
+  [A.buildDone, "success", -7],
+  [A.install, "click", -8],
+  [A.install + 0.05, "whoosh-long", -9],
   // 7 — resultado
-  [47.0, "click", -8],
-  [47.25, "typing-short", -14],
-  [48.5, "click", -8],
-  [49.0, "pop", -9],
-  [49.02, "shimmer", -12],
-  [53.35, "whoosh", -11],
+  [59.0, "click", -8],
+  [59.25, "typing-short", -14],
+  [60.5, "click", -8],
+  [61.0, "pop", -9],
+  [61.02, "shimmer", -12],
+  [63.0, "click", -8],
+  [63.1, "pop", -15],
+  [65.35, "whoosh", -11],
   // 8 — encerramento
-  [54.0, "glitch", -20],
-  [54.5, "glitch", -21],
-  [55.0, "glitch", -21],
-  [55.5, "glitch", -20],
-  [55.5, "whoosh-long", -11],
-  [56.05, "shimmer", -11],
+  [66.0, "glitch", -20],
+  [66.5, "glitch", -21],
+  [67.0, "glitch", -21],
+  [67.5, "glitch", -20],
+  [67.5, "whoosh-long", -11],
+  [68.05, "shimmer", -11],
 ];
 
 export function Soundtrack(): JSX.Element {

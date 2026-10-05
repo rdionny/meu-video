@@ -3,7 +3,8 @@ tools/ds-render/.editor/
 # Diffusion Studio app caches / per-machine state
 skitstudio-promo/cache/
 skitstudio-promo/node_modules/
-# Work-in-progress renders (the delivered video is render/skitstudio-promo-1080p.mp4)
+# Work-in-progress renders (deliveries: render/skitstudio-promo-1080p.mp4 and
+# render/skitstudio-promo-vertical-1080x1920.mp4)
 render/previews/
 render/*.webm
 __pycache__/

@@ -123,17 +123,17 @@ export function Pivot(props: {
   );
 }
 
-/** Camera math: put world point P at frame point Q with zoom Z (pivot = frame centre). */
-export function cam(P: [number, number], Z: number, Q: [number, number] = [960, 540]) {
-  return { x: Q[0] - 960 - Z * (P[0] - 960), y: Q[1] - 540 - Z * (P[1] - 540), s: Z };
+/** Camera math: put world point P at frame point Q with zoom Z; the camera pivots on the frame centre c. */
+export function cam(P: [number, number], Z: number, Q: [number, number] = [960, 540], c: [number, number] = [960, 540]) {
+  return { x: Q[0] - c[0] - Z * (P[0] - c[0]), y: Q[1] - c[1] - Z * (P[1] - c[1]), s: Z };
 }
 
 export type CamKey = [time: number, cam: { x: number; y: number; s: number }, easing?: string];
 
 /** An adjustment layer driving the clip right below it like a camera. */
-export function Camera(props: { name?: string; start?: number; end?: number; k: CamKey[] }): JSX.Element {
+export function Camera(props: { name?: string; start?: number; end?: number; k: CamKey[]; w?: number; h?: number }): JSX.Element {
   return (
-    <adjustmentLayer name={props.name ?? "Camera"} start={props.start} end={props.end} width={1920} height={1080}>
+    <adjustmentLayer name={props.name ?? "Camera"} start={props.start} end={props.end} width={props.w ?? 1920} height={props.h ?? 1080}>
       <Kf p="x" k={props.k.map(([t, c, e]) => [t, c.x, e] as Key)} />
       <Kf p="y" k={props.k.map(([t, c, e]) => [t, c.y, e] as Key)} />
       <Kf p="scale" k={props.k.map(([t, c, e]) => [t, c.s, e] as Key)} />

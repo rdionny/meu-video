@@ -4,7 +4,7 @@ import sys
 import numpy as np
 from PIL import Image
 
-W, H = 1920, 1080
+W, H = (int(sys.argv[2]), int(sys.argv[3])) if len(sys.argv) > 3 else (1920, 1080)
 y, x = np.mgrid[0:H, 0:W].astype(np.float32)
 top = np.array([7, 8, 15], np.float32)
 bot = np.array([11, 11, 24], np.float32)

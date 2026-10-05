@@ -1,4 +1,4 @@
-"""Original soundtrack for the SkitStudio promo: 60 s of modern electronic
+"""Original soundtrack for the SkitStudio promo: 72 s of modern electronic
 music at 120 BPM (one bar = 2 s), arranged against the video's timeline so
 that every scene change starts on a bar and the brand lockup lands on the
 final hit.
@@ -10,9 +10,14 @@ Timeline (seconds) — kept in sync with skitstudio-promo/lib/timeline.ts:
    6  scene 2: beat enters               12 scene 3: full groove
   24  scene 4: variation                 30 scene 5
   36  build                              38 drop (overview montage)
-  44  build                              46 result (impact)
-  52  build                              54 outro word stabs (54, 54.5, 55, 55.5)
-  56  final hit — brand lockup           60 end
+  42  Skit AI: half-time                 46 groove + counter-line
+  50  build (riser, snare roll)          54 drop returns (build screen)
+  58  result (impact)                    64 build
+  66  outro word stabs (66, 66.5, 67, 67.5)
+  68  final hit — brand lockup           72 end
+
+The v1 arrangement (60 s) is written on its own clock and placed through W(),
+which opens the 12 s gap the Skit AI section fills.
 """
 
 import sys
@@ -24,8 +29,15 @@ from dsp import (SR, secs, midi_hz, saw, square, sine, noise, adsr, exp_decay, f
 BPM = 120
 BEAT = 60 / BPM          # 0.5 s
 BAR = 4 * BEAT           # 2 s
-LENGTH = 60.0
+LENGTH = 72.0
 N = secs(LENGTH)
+OLD_LENGTH = 60.0        # the v1 arrangement, played around the inserted AI section
+AI = (42.0, 54.0)        # Skit AI section on the new clock
+
+
+def W(t):
+    """v1 arrangement time → 72 s timeline (everything from 42 s moves 12 s later)."""
+    return t if t < AI[0] else t + (AI[1] - AI[0])
 
 # A minor: Am9 | Fmaj9 | Cadd9 | G6/9, one chord per bar
 CHORDS = [
@@ -205,7 +217,11 @@ def build():
     fx = np.zeros((N, 2))
     kicks = []  # times, for sidechain
 
-    total_bars = int(LENGTH / BAR)
+    def P(buf, clip, at, gain=1.0):
+        # the 60 s arrangement is written in its own clock; W() opens the gap for the AI section
+        place(buf, clip, W(at), gain)
+
+    total_bars = int(OLD_LENGTH / BAR)
 
     for bar in range(total_bars):
         t0 = t_of(bar)
@@ -224,7 +240,7 @@ def build():
             else:
                 cutoff = 2600
             p = pad_chord(ch["pad"], BAR, cutoff=cutoff, attack=0.6 if t0 < 6 else 0.25, seed=bar)
-            place(pads, p, t0, 1.0 if t0 >= 6 else 0.8)
+            P(pads, p, t0, 1.0 if t0 >= 6 else 0.8)
 
         # ---------------- arp, 16ths (from 0.5 s, filtered intro)
         if t0 < 54:
@@ -243,7 +259,7 @@ def build():
                 else:
                     bright, vel = 0.8, 0.65
                 accent = 1.0 if k % 4 == 0 else 0.75
-                place(arps, stereo(pluck(note, 0.12, bright), 0.15 if k % 2 else -0.15), at, vel * accent)
+                P(arps, stereo(pluck(note, 0.12, bright), 0.15 if k % 2 else -0.15), at, vel * accent)
 
         # ---------------- drums
         if 6 <= t0 < 54:
@@ -255,36 +271,36 @@ def build():
                     k = filt(kick(0.75), "lp", 1400)
                 else:
                     k = kick(1.0)
-                place(drums, stereo(k), at, 0.95)
-                kicks.append(at)
+                P(drums, stereo(k), at, 0.95)
+                kicks.append(W(at))
             # claps on 2 and 4 from scene 3
             if t0 >= 12:
                 for b in (1, 3):
                     at = t_of(bar, b)
                     if (36 <= at < 38) or (52 <= at < 54):
                         continue
-                    place(drums, stereo(clap(0.8, seed=bar * 7 + b), 0.05), at)
+                    P(drums, stereo(clap(0.8, seed=bar * 7 + b), 0.05), at)
             # hats
             if t0 < 12:
                 for e in range(8):
-                    place(drums, stereo(hat(False, 0.35 if e % 2 else 0.2, seed=bar * 16 + e), 0.25), t_of(bar, e / 2))
+                    P(drums, stereo(hat(False, 0.35 if e % 2 else 0.2, seed=bar * 16 + e), 0.25), t_of(bar, e / 2))
             else:
                 for s in range(16):
                     v = [0.5, 0.25, 0.4, 0.25][s % 4]
                     if 46 <= t0 < 52:
                         v *= 0.8
-                    place(drums, stereo(hat(False, v, seed=bar * 32 + s), 0.25 if s % 2 else -0.2), t_of(bar, s / 4))
+                    P(drums, stereo(hat(False, v, seed=bar * 32 + s), 0.25 if s % 2 else -0.2), t_of(bar, s / 4))
                 for b in range(4):  # open hats on the off-beat
-                    place(drums, stereo(hat(True, 0.35, seed=bar * 9 + b), -0.3), t_of(bar, b + 0.5))
+                    P(drums, stereo(hat(True, 0.35, seed=bar * 9 + b), -0.3), t_of(bar, b + 0.5))
             # perc on scene 4+ (rim-ish snare ghost notes)
             if 24 <= t0 < 36 or 38 <= t0 < 44:
                 for b in (0.75, 2.25, 3.75):
-                    place(drums, stereo(filt(snare(0.25, seed=bar + int(b * 4)), "hp", 900), 0.4), t_of(bar, b))
+                    P(drums, stereo(filt(snare(0.25, seed=bar + int(b * 4)), "hp", 900), 0.4), t_of(bar, b))
 
         # quiet hats in the intro's second half
         if t0 == 4:
             for e in range(8):
-                place(drums, stereo(hat(False, 0.12 + 0.03 * e, seed=e), 0.2), t_of(bar, e / 2))
+                P(drums, stereo(hat(False, 0.12 + 0.03 * e, seed=e), 0.2), t_of(bar, e / 2))
 
         # ---------------- bass, 8ths
         if 6 <= t0 < 54:
@@ -296,72 +312,140 @@ def build():
                 m = ch["root"] + (12 if (s == 6 and t0 >= 12) else 0)
                 drive = 1.4 if 38 <= t0 < 46 else 1.0
                 bright = 1.3 if 38 <= t0 < 46 else (0.5 if t0 < 12 else 1.0)
-                place(bass, stereo(bass_note(m, 0.2 if t0 >= 12 else 0.4, drive, bright)), at, 0.8 if t0 >= 12 else 0.65)
+                P(bass, stereo(bass_note(m, 0.2 if t0 >= 12 else 0.4, drive, bright)), at, 0.8 if t0 >= 12 else 0.65)
 
         # ---------------- drop: stabs + lead
         if 38 <= t0 < 46:
             for b in (0.5, 1.5, 2.5, 3.5):
-                place(leads, stab([n + 12 for n in ch["pad"][:4]], 0.18, 0.9), t_of(bar, b), 0.55)
+                P(leads, stab([n + 12 for n in ch["pad"][:4]], 0.18, 0.9), t_of(bar, b), 0.55)
 
     # lead melody over the drop (bars 19–22), beats within each bar
     melody = [
-        [(0, 76, .75), (.75, 74, .25), (1, 72, .5), (1.5, 69, .5), (2, 72, .5), (2.5, 74, .5), (3, 76, 1)],
-        [(0, 77, .75), (.75, 76, .25), (1, 72, 1), (2, 69, .5), (2.5, 72, .5), (3, 74, 1)],
-        [(0, 79, .75), (.75, 76, .25), (1, 74, .5), (1.5, 72, .5), (2, 74, .5), (2.5, 76, .5), (3, 79, 1)],
-        [(0, 81, 1.5), (1.5, 79, .5), (2, 76, 1), (3, 74, 1)],
+        [(0, 74, .75), (.75, 76, .25), (1, 79, .5), (1.5, 76, .5), (2, 74, .5), (2.5, 71, .5), (3, 74, 1)],  # G
+        [(0, 76, .75), (.75, 74, .25), (1, 72, 1), (2, 69, .5), (2.5, 71, .5), (3, 72, 1)],                  # Am
+        [(0, 77, .75), (.75, 76, .25), (1, 72, .5), (1.5, 69, .5), (2, 72, .5), (2.5, 76, .5), (3, 79, 1)],  # F
+        [(0, 79, 1.5), (1.5, 76, .5), (2, 74, 1), (3, 72, 1)],                                               # C
     ]
     prev = None
     for i, bar_notes in enumerate(melody):
         for (b, m, d) in bar_notes:
             ln = lead_note(m, d * BEAT * 0.92, prev)
-            place(leads, stereo(ln, 0.0), t_of(19 + i, b), 0.55)
+            P(leads, stereo(ln, 0.0), t_of(19 + i, b), 0.55)
             prev = m
 
     # ---------------- outro word stabs (54, 54.5, 55, 55.5) and final hit (56)
     for i, at in enumerate((54.0, 54.5, 55.0, 55.5)):
         chord = CHORDS[0]["pad"]
-        place(leads, stab([n + 12 for n in chord[:4]], 0.22, 1.0), at, 0.75)
-        place(drums, stereo(kick(1.0)), at, 1.0)
-        kicks.append(at)
-        place(drums, stereo(clap(0.9, seed=90 + i)), at, 0.8)
-        place(bass, stereo(bass_note(45, 0.3, 1.3, 1.2)), at, 0.8)
+        P(leads, stab([n + 12 for n in chord[:4]], 0.22, 1.0), at, 0.75)
+        P(drums, stereo(kick(1.0)), at, 1.0)
+        kicks.append(W(at))
+        P(drums, stereo(clap(0.9, seed=90 + i)), at, 0.8)
+        P(bass, stereo(bass_note(45, 0.3, 1.3, 1.2)), at, 0.8)
 
     final = pad_chord([57, 60, 64, 67, 71, 76], 1.6, cutoff=5200, attack=0.01, release=2.4, seed=99)
-    place(pads, final, 56.0, 1.6)
-    place(leads, stab([69, 72, 76, 79, 83], 0.6, 1.0), 56.0, 0.9)
-    place(bass, stereo(bass_note(33, 1.2, 1.0, 0.8)), 56.0, 1.0)
-    place(fx, stereo(impact(1.0, 3.5)), 56.0, 0.9)
-    place(fx, crash(1.0, 3.5), 56.0, 0.7)
-    place(drums, stereo(kick(1.0)), 56.0, 1.0)
+    P(pads, final, 56.0, 1.6)
+    P(leads, stab([69, 72, 76, 79, 83], 0.6, 1.0), 56.0, 0.9)
+    P(bass, stereo(bass_note(33, 1.2, 1.0, 0.8)), 56.0, 1.0)
+    P(fx, stereo(impact(1.0, 3.5)), 56.0, 0.9)
+    P(fx, crash(1.0, 3.5), 56.0, 0.7)
+    P(drums, stereo(kick(1.0)), 56.0, 1.0)
 
     # ---------------- transitions and accents
-    place(fx, reverse_crash(1.2, 0.6), 3.0 - 1.2)
-    place(fx, stereo(impact(0.9, 2.5)), 3.0, 0.85)
-    place(fx, crash(0.8, 2.6), 3.0, 0.5)
+    P(fx, reverse_crash(1.2, 0.6), 3.0 - 1.2)
+    P(fx, stereo(impact(0.9, 2.5)), 3.0, 0.85)
+    P(fx, crash(0.8, 2.6), 3.0, 0.5)
 
-    place(fx, riser(1.5, 0.35), 6.0 - 1.5)
-    place(fx, crash(0.6, 2.0), 6.0, 0.35)
-    place(fx, riser(2.0, 0.45), 12.0 - 2.0)
-    place(fx, crash(0.8, 2.2), 12.0, 0.55)
-    place(fx, crash(0.6, 2.0), 24.0, 0.4)
-    place(fx, crash(0.6, 2.0), 30.0, 0.4)
+    P(fx, riser(1.5, 0.35), 6.0 - 1.5)
+    P(fx, crash(0.6, 2.0), 6.0, 0.35)
+    P(fx, riser(2.0, 0.45), 12.0 - 2.0)
+    P(fx, crash(0.8, 2.2), 12.0, 0.55)
+    P(fx, crash(0.6, 2.0), 24.0, 0.4)
+    P(fx, crash(0.6, 2.0), 30.0, 0.4)
 
-    place(fx, riser(2.0, 0.7), 38.0 - 2.0)
+    P(fx, riser(2.0, 0.7), 38.0 - 2.0)
     for k in range(16):  # snare roll into the drop
         at = 36.0 + k * 0.125 if k < 12 else 37.5 + (k - 12) * 0.0625 * 2
-        place(drums, stereo(snare(0.25 + 0.04 * k, seed=200 + k), 0.0), at, 0.7)
-    place(fx, crash(1.0, 2.6), 38.0, 0.7)
-    place(fx, stereo(impact(0.7, 2.0)), 38.0, 0.6)
-    place(fx, crash(0.7, 2.0), 42.0, 0.45)
+        P(drums, stereo(snare(0.25 + 0.04 * k, seed=200 + k), 0.0), at, 0.7)
+    P(fx, crash(1.0, 2.6), 38.0, 0.7)
+    P(fx, stereo(impact(0.7, 2.0)), 38.0, 0.6)
+    P(fx, crash(0.7, 2.0), 42.0, 0.45)
 
-    place(fx, riser(2.0, 0.6), 46.0 - 2.0)
-    place(fx, stereo(impact(0.9, 2.5)), 46.0, 0.8)
-    place(fx, crash(0.9, 2.4), 46.0, 0.6)
+    P(fx, riser(2.0, 0.6), 46.0 - 2.0)
+    P(fx, stereo(impact(0.9, 2.5)), 46.0, 0.8)
+    P(fx, crash(0.9, 2.4), 46.0, 0.6)
 
-    place(fx, riser(2.0, 0.6), 54.0 - 2.0)
+    P(fx, riser(2.0, 0.6), 54.0 - 2.0)
     for k in range(8):
-        place(drums, stereo(snare(0.2 + 0.05 * k, seed=300 + k)), 52.0 + k * 0.1875 + (0.0 if k < 6 else 0.0), 0.6)
-    place(fx, reverse_crash(1.0, 0.5), 56.0 - 1.0)
+        P(drums, stereo(snare(0.2 + 0.05 * k, seed=300 + k)), 52.0 + k * 0.1875 + (0.0 if k < 6 else 0.0), 0.6)
+    P(fx, reverse_crash(1.0, 0.5), 56.0 - 1.0)
+
+    # ---------------- Skit AI section (inserted at 42–54, new clock)
+    # F | C | G | Am | F | G — half-time intro, groove, then the build into the
+    # drop's return at 54 (the build screen).
+    ai_chords = [1, 2, 3, 0, 1, 3]
+    for i, ci in enumerate(ai_chords):
+        t0 = AI[0] + i * BAR
+        ch = CHORDS[ci]
+        phase = i // 2
+        place(pads, pad_chord(ch["pad"], BAR, cutoff=(2000, 2600, 3300)[phase], attack=0.3, seed=60 + i), t0, 0.95)
+        pattern = [0, 2, 4, 2, 1, 3, 4, 3]
+        for k in range(16):
+            at = t0 + k * BEAT / 4
+            note = ch["arp"][pattern[k % 8]] + (12 if k % 4 == 2 else 0)
+            vel = (0.5, 0.6, 0.64)[phase] * (1.0 if k % 4 == 0 else 0.72)
+            place(arps, stereo(pluck(note, 0.1, (0.55, 0.75, 0.95)[phase]), 0.25 if k % 2 else -0.25), at, vel)
+        last = i == len(ai_chords) - 1
+        for b in range(4):
+            at = t0 + b * BEAT
+            if (phase == 0 and b in (1, 3)) or at >= AI[1] - 0.5:
+                continue
+            place(drums, stereo(kick(0.9 if phase == 0 else 1.0)), at, 0.92)
+            kicks.append(at)
+        if phase == 0:
+            place(drums, stereo(clap(0.75, seed=400 + i), 0.05), t0 + 2 * BEAT)
+        elif not last:
+            for b in (1, 3):
+                place(drums, stereo(clap(0.8, seed=410 + i * 4 + b), 0.05), t0 + b * BEAT)
+        for s16 in range(16):
+            if phase == 0 and s16 % 2:
+                continue
+            at = t0 + s16 * BEAT / 4
+            if at >= AI[1] - 0.5:
+                continue
+            v = [0.45, 0.22, 0.36, 0.22][s16 % 4] * (0.8 if phase == 0 else 1.0)
+            place(drums, stereo(hat(False, v, seed=500 + i * 32 + s16), 0.25 if s16 % 2 else -0.2), at)
+        if phase > 0:
+            for b in range(4):
+                if t0 + b * BEAT + 0.5 * BEAT < AI[1] - 0.5:
+                    place(drums, stereo(hat(True, 0.3, seed=600 + i * 9 + b), -0.3), t0 + (b + 0.5) * BEAT)
+        if phase == 0:
+            for (b, d) in ((0, 0.9), (1.5, 0.4), (3, 0.6)):
+                place(bass, stereo(bass_note(ch["root"], d, 0.9, 0.7)), t0 + b * BEAT, 0.72)
+        else:
+            for s8 in (0, 2, 3, 5, 6, 7):
+                at = t0 + s8 * BEAT / 2
+                if at >= AI[1] - 0.5:
+                    continue
+                m = ch["root"] + (12 if s8 == 6 else 0)
+                place(bass, stereo(bass_note(m, 0.2, 1.0 + 0.15 * (phase - 1), 1.0 + 0.15 * (phase - 1))), at, 0.8)
+
+    # a soft counter-line while Skit AI answers (G | Am)
+    counter = [
+        [(0, 74, .5), (.5, 76, .5), (1, 79, 1), (2.5, 76, .5), (3, 74, 1)],
+        [(0, 72, .5), (.5, 74, .5), (1, 76, 1.5), (3, 69, 1)],
+    ]
+    prev = None
+    for i, bar_notes in enumerate(counter):
+        for (b, m, d) in bar_notes:
+            place(leads, stereo(lead_note(m, d * BEAT * 0.9, prev), 0.0), AI[0] + (2 + i) * BAR + b * BEAT, 0.3)
+            prev = m
+
+    place(fx, crash(0.6, 2.0), AI[0], 0.4)
+    place(fx, crash(0.7, 2.2), AI[0] + 2 * BAR, 0.45)
+    place(fx, riser(4.0, 0.55), AI[1] - 4.0)
+    for k in range(12):
+        place(drums, stereo(snare(0.22 + 0.045 * k, seed=700 + k)), AI[1] - 2.0 + k * 0.125, 0.65)
+    place(fx, reverse_crash(1.0, 0.45), AI[1] - 1.0)
 
     # ---------------- sidechain on the tonal layers
     duck = np.ones(N)
@@ -403,8 +487,9 @@ def rms_db(x, a=12.0, b=36.0):
 # section energy curve (dB) the master follows — the music grows scene by scene.
 TARGETS = {"drums": -15.0, "bass": -17.0, "pads": -22.0, "arps": -23.0, "leads": -19.0, "fx": None}
 ENERGY = [(0.0, -9.0), (2.9, -9.0), (3.0, -5.0), (5.9, -7.0), (6.0, -5.0), (11.9, -4.0), (12.0, -2.0),
-          (23.9, -2.0), (24.0, -1.5), (35.9, -1.5), (37.9, -0.5), (38.0, 0.0), (45.9, 0.0), (46.0, -1.0),
-          (53.9, -1.0), (54.0, 0.0), (60.0, 0.0)]
+          (23.9, -2.0), (24.0, -1.5), (35.9, -1.5), (37.9, -0.5), (38.0, 0.0), (41.9, 0.0), (42.0, -2.5),
+          (45.9, -2.5), (46.0, -1.8), (49.9, -1.5), (53.9, -0.8), (54.0, 0.0), (57.9, 0.0), (58.0, -1.0),
+          (65.9, -1.0), (66.0, 0.0), (72.0, 0.0)]
 
 
 def mixdown(stems):
@@ -414,7 +499,7 @@ def mixdown(stems):
         if target is None:
             gain = 0.5
         else:
-            ref = rms_db(x, 38, 46) if name == "leads" else rms_db(x)
+            ref = rms_db(x, 38, 42) if name == "leads" else rms_db(x)
             gain = 10 ** ((target - ref) / 20)
         mix += x * gain
         print(f"  {name:6s} gain {20 * np.log10(gain):+.1f} dB")
@@ -430,9 +515,9 @@ def mixdown(stems):
     curve = 10 ** (np.interp(t, times, dbs) / 20)
     mix *= curve[:, None]
 
-    # tail: let the final hit ring and fade to silence by 60 s
+    # tail: let the final hit ring and fade to silence by 72 s
     fade = np.ones(N)
-    a, b = secs(58.2), secs(59.85)
+    a, b = secs(70.2), secs(71.85)
     fade[a:b] = np.linspace(1, 0, b - a) ** 2
     fade[b:] = 0
     mix *= fade[:, None]
