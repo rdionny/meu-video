@@ -1,0 +1,26 @@
+{
+  "name": "skitstudio-promo",
+  "displayName": "SkitStudio — Vídeo promocional",
+  "private": true,
+  "version": "1.0.0",
+  "main": "index.tsx",
+  "projectId": "skitstudio-promo-2026",
+  "scripts": {
+    "render": "node ../tools/ds-render/render.mjs --project . --scene promo --out ../render/skitstudio-promo-master.webm --mp4 ../render/skitstudio-promo-1080p.mp4",
+    "preview": "node ../tools/ds-render/render.mjs --project . --scene promo --out ../render/preview-540p.webm --res 540"
+  },
+  "diffusion": {
+    "export": {
+      "promo": {
+        "format": "mp4",
+        "video": { "enabled": true, "codec": "avc", "bitrate": 16000000, "fps": 30, "resolution": 1080 },
+        "audio": { "enabled": true, "codec": "aac", "sampleRate": 48000, "bitrate": 256000 }
+      }
+    }
+  },
+  "devDependencies": {
+    "@diffusionstudio/jsx": "^0.207.0",
+    "solid-js": "^1.9.10",
+    "typescript": "~5.9.3"
+  }
+}
